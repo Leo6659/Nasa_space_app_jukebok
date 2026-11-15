@@ -3,9 +3,7 @@ import pandas as pd
 from owslib.wms import WebMapService
 import os
 
-MAP_KEY = "<Enter your key here>"
-
-def test_map():
+def generate_map(MAP_KEY:str):
     da = pd.read_csv(f"https://firms.modaps.eosdis.nasa.gov/api/data_availability/csv/{MAP_KEY}/all")
     # Zone dézoomée (avant : -1.7, 44.3, -0.4, 45.2)
     ouest, sud, est, nord = -2.0, 44.1, -0.1, 45.4
@@ -92,5 +90,5 @@ def test_map():
         ax.set_title(f"Détections thermiques - {jour}")
         ax.legend(loc="upper left")
 
-        fig.savefig(f"frames/{i:03d}.png", dpi=150, bbox_inches="tight")
+        fig.savefig(f"frames/file_{i:03d}.png", dpi=150, bbox_inches="tight")
         plt.close(fig)
