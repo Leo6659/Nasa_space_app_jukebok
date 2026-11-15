@@ -1,8 +1,8 @@
 import numpy as np
 import pygame
-import test_map_key 
-import os 
-
+import test_map_key
+import os
+import sound
 WIDTH_WINDOW = 1282
 HEIGHT_WINDOW  = 922
 clock = pygame.time.Clock()
@@ -46,8 +46,8 @@ def check_key():
 def main() -> None:
 
     check_key()
-    test_map_key.generate_map(MAP_KEY)
-
+    liste_var = test_map_key.generate_map(MAP_KEY)
+    mixer = sound.FireSound(liste_var["nb_feux"],liste_var["frp_moyen"])
     pygame.init()
     files = []
     base_file_name = "frames/file"
@@ -59,6 +59,7 @@ def main() -> None:
     running = True
     rec_size = screen.get_width()
     example_picture = pygame.image.load("background.png").convert()
+    mixer.start()
     size_width = (screen.get_width() / file_number)
     size_height = 40
 
@@ -77,14 +78,17 @@ def main() -> None:
                 # next frame
                 if keys[pygame.K_RIGHT]:
                     if index + 1 < len(files) - 1:
-                        index += 1  
+                        index += 1
                     example_picture = pygame.image.load(files[index]).convert()
-                    
+                    mixer.next()
+
+
                 # previous frame
                 if keys[pygame.K_LEFT]:
                     if index - 1 >= 0:
                         index -= 1
                     example_picture = pygame.image.load(files[index]).convert()
+                    mixer.previous()
         screen.blit(example_picture, (0,0 + rim_vertical))
 
 
@@ -93,25 +97,25 @@ def main() -> None:
         # put picture in the right place (if rim_vertical < 0 it puts picture at the center of the window
         if (rim_vertical <= 0 or rim_horizontal <= 0):
             # print("TODO:scale picture ?")
-            screen.blit(example_picture, (0 + rim_horizontal, 0 + rim_vertical)) 
+            screen.blit(example_picture, (0 + rim_horizontal, 0 + rim_vertical))
         else:
-            screen.blit(example_picture, (0 + rim_horizontal,0 + rim_vertical)) 
+            screen.blit(example_picture, (0 + rim_horizontal,0 + rim_vertical))
 
-        # Manage timestamp 
+        # Manage timestamp
         rec_timestamp = pygame.Rect(0, screen.get_height() - size_height, screen.get_width(), size_height)
         pygame.draw.rect(screen, (125, 127, 126), rec_timestamp, width = 0)
 
         # Current position
-        width_bar = screen.get_width() / (file_number - 1) 
+        width_bar = screen.get_width() / (file_number - 1)
         # We have to round ourselves and to have a right part to get our bar to move correctly
         x = round(index * width_bar)
         right = round((index + 1) * width_bar)
 
         rec_timestamp_active = pygame.Rect(x, screen.get_height() - size_height, right - x, size_height)
         pygame.draw.rect(screen, (150, 143, 190), rec_timestamp_active, width=0)
-        
-        pygame.display.flip() # is .update() an equivalent?
 
+        pygame.display.flip() # is .update() an equivalent?
+        print(files)
         clock.tick(60)
 
     print("Hello and goodbye from nasa-space-app-jukebok!")
@@ -119,6 +123,8 @@ def main() -> None:
     for i in os.listdir("frames"):
         os.remove("frames/" + i)
     os.rmdir("frames")
+    mixer.stop()
     pygame.quit()
+
 
 main()

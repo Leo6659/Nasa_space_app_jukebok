@@ -3,6 +3,7 @@ import pandas as pd
 from owslib.wms import WebMapService
 import os
 
+
 def generate_map(MAP_KEY:str):
     da = pd.read_csv(f"https://firms.modaps.eosdis.nasa.gov/api/data_availability/csv/{MAP_KEY}/all")
     # Zone dézoomée (avant : -1.7, 44.3, -0.4, 45.2)
@@ -92,3 +93,4 @@ def generate_map(MAP_KEY:str):
 
         fig.savefig(f"frames/file_{i:03d}.png", dpi=150, bbox_inches="tight")
         plt.close(fig)
+    return par_jour

@@ -1,34 +1,19 @@
-# =====================================================================
-# FIRE SOUND ENGINE
-# =====================================================================
-# What this does:
-#   You show a photo of a fire map. This code plays a sound that matches it.
-#   More fire detections = scarier sound.
-#   More fire power (MW)  = louder sound.
-#
-# When you click next / previous, the sound does NOT jump or cut.
-# It slowly slides from the old sound to the new one.
-#
-# Install once:  pip install sounddevice numpy
-# =====================================================================
+import numpy as np
+import sounddevice as sd
 
-import numpy as np           
-import sounddevice as sd    
-
-# ---------------------------------------------------------------------
 # SETTINGS YOU CAN PLAY WITH
-# ---------------------------------------------------------------------
 SR = 44100        # quality of the sound (samples per second)
-BLOCK = 1024      # the sound is made in small pieces of this size
-GLIDE = 1.0       # seconds to slide from one photo's sound to the next
+BLOCK = 1024
+GLIDE = 1.0       # seconds to slide from one's sound to the next
                   # (0.3 = fast change, 3 = very slow change)
 GAIN = 0.2        # master volume
 
 # --- Fire power (volume) ---
-FRP_MAX = 80.0    # the strongest fire we expect, in megawatts (MW).
-                  # A photo with 80 MW gets the maximum volume.
+FRP_MAX = 80.0
+
 POWER_CURVE = 0.5 # makes weak fires louder. 1 = no boost,
                   # 0.5 = good boost (square root), 0.3 = very strong boost
+
 V_MIN = 0.15      # quietest allowed volume, so we always hear a little
 
 # --- Main sound ---
@@ -65,11 +50,7 @@ class FireSound:
         self.N = N
         self.FRP = FRP
 
-        # ----- Step A: turn the data into numbers between 0 and 1 -----
-
-        # I = "how many fires", from 0 (none) to 1 (the most we have).
-        # We use a log so a photo with 3000 fires doesn't make a photo
-        # with 50 fires sound like nothing.
+        # turn the data into numbers between 0 and 1
         I = np.log1p(N) / np.log1p(N.max())
 
         # E = same idea, but it stays small for a long time and then
@@ -85,11 +66,11 @@ class FireSound:
         # Boost the weak values so small fires are still audible.
         P = P ** POWER_CURVE
 
-        # ----- Step B: turn those numbers into sound settings -----
-        f_2 = F_BASE + BEAT_MAX * I          # 2nd note: goes up with the fires
-        f_drone = DRONE_F0 - DRONE_DROP * E  # low note: goes down (heavier feeling)
-        R = R_MIN + R_RANGE * E              # wobble speed: faster with more fires
-        vol = V_MIN + (1 - V_MIN) * P        # volume: louder with more power
+        # turn those numbers into sound settings
+        f_2 = F_BASE + BEAT_MAX * I
+        f_drone = DRONE_F0 - DRONE_DROP * E
+        R = R_MIN + R_RANGE * E
+        vol = V_MIN + (1 - V_MIN) * P
 
         # One row per photo. Columns: [f_2, f_drone, R, E, vol]
         self.targets = np.column_stack([f_2, f_drone, R, E, vol])
@@ -117,7 +98,6 @@ class FireSound:
         self.stream = sd.OutputStream(samplerate=SR, blocksize=BLOCK,
                                       channels=1, callback=self._callback)
 
-    # ---------------- Buttons you can connect to your app ----------------
     def start(self):
         """Start the sound."""
         self.stream.start()
@@ -128,7 +108,6 @@ class FireSound:
 
     def set_frame(self, i):
         """Jump to photo number i (0 = first photo)."""
-        # np.clip stops us from going before the first or after the last photo
         self.index = int(np.clip(i, 0, self.n_frames - 1))
 
     def next(self):
@@ -139,36 +118,26 @@ class FireSound:
         """Go to the previous photo."""
         self.set_frame(self.index - 1)
 
-    # ---------------- Small helper: makes one wave ----------------
     def _osc(self, k, freq):
         """
         Gives the "position" of wave number k for this piece of sound.
         freq = the frequency wanted at each moment.
         Later we do sin(position) to get the actual wave.
         """
-        # Add up small steps to move forward in the wave.
-        # We start from where we stopped last time, so there is no click.
         ph = self.phases[k] + np.cumsum(TWO_PI * freq / SR)
-        # Remember where we stopped, for the next piece
         self.phases[k] = ph[-1] % TWO_PI
         return ph
 
-    # ---------------- The part that creates the sound ----------------
     def _callback(self, outdata, frames, time, status):
-        # The computer calls this about 40 times per second and says:
-        # "give me 'frames' numbers of sound to play".
-        # It has to be quick, or the sound will stutter.
 
-        # --- 1. Slide a little toward the current photo's settings ---
         target = self.targets[self.index]              # where we want to go
         a = 1 - np.exp(-frames / SR / GLIDE)           # how big a step to take
         new = self.cur + (target - self.cur) * a       # take that step
         # Make a smooth ramp between old and new settings
         curve = np.linspace(self.cur, new, frames, endpoint=False)
-        self.cur = new                                 # remember for next time
-        f_2, f_drone, R, E, vol = curve.T              # split into 5 settings
+        self.cur = new
+        f_2, f_drone, R, E, vol = curve.T
 
-        # --- 2. Move each wave forward ---
         ph_base = self._osc(0, np.full(frames, F_BASE))         # main note
         ph_2 = self._osc(1, f_2)                                # 2nd note
         ph_drone = self._osc(2, f_drone)                        # low note
@@ -176,20 +145,12 @@ class FireSound:
         ph_tri = self._osc(4, np.full(frames, F_BASE * 1.414))  # unpleasant note
         ph_R = self._osc(5, R)                                  # wobble
 
-        # --- 3. Build each layer of the sound ---
-
-        # Music: main note + 2nd note + unpleasant note.
-        # The unpleasant note is multiplied by E, so it only
-        # shows up when the fire is big.
         music = (0.4 * np.sin(ph_base) + 0.4 * np.sin(ph_2)
                  + DISSONANCE * 0.3 * E * np.sin(ph_tri))
 
-        # Low background note. We add higher copies of it (x2, x3)
-        # so you can hear it even on small laptop speakers.
         drone = (np.sin(ph_drone) + 0.5 * np.sin(2 * ph_drone)
                  + 0.25 * np.sin(3 * ph_drone)) / 1.75
 
-        # Deep rumble: louder when the fire is bigger
         sub = SUB_BOOST * E * np.sin(ph_sub)
 
         # Crackling: random noise, kept only at random moments.
@@ -198,19 +159,15 @@ class FireSound:
         crackle = noise * (self.rng.random(frames) < 0.02 + 0.2 * E)
         crackle = NOISE_AMOUNT * E * crackle
 
-        # --- 4. Mix all layers together ---
         mix = 0.5 * music + 0.4 * drone + sub + crackle
 
-        # --- 5. Wobble: the volume goes up and down R times per second ---
         tremolo = (1 - TREMOLO_DEPTH) + TREMOLO_DEPTH * 0.5 * (1 + np.sin(ph_R))
         mix *= tremolo
 
-        # --- 6. Distortion: squash the loud parts to sound harsh ---
         # The bigger the fire (E), the harsher it gets.
         drive = 1 + DISTORTION * E
         mix = np.tanh(drive * mix) / np.tanh(drive)
 
-        # --- 7. Final volume: fire power (MW) and master volume ---
         mix *= vol * GAIN
 
         # Send to the speakers.
@@ -247,4 +204,4 @@ if __name__ == "__main__":
         elif key == "q":
             break
 
-    fs.stop()                
+    fs.stop()
