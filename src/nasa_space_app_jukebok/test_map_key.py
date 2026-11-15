@@ -3,7 +3,7 @@ import pandas as pd
 from owslib.wms import WebMapService
 import os
 
-MAP_KEY = "972e6a6b134e0ef6a9366e372e7d6409"
+MAP_KEY = "<Enter your key here>"
 
 
 da = pd.read_csv(f"https://firms.modaps.eosdis.nasa.gov/api/data_availability/csv/{MAP_KEY}/all")
