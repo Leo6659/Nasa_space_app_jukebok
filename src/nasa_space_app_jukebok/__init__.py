@@ -7,6 +7,8 @@ WIDTH_WINDOW = 1282
 HEIGHT_WINDOW  = 922
 clock = pygame.time.Clock()
 
+MAP_KEY =  "<Enter your key here>"
+
 def index_files(base_name:str, tab:[str], n_files:int):
     """
     Every file has the same pattern: `base_name` + `_%d % i`
@@ -18,19 +20,20 @@ def index_files(base_name:str, tab:[str], n_files:int):
 
 def check_key():
 
+    global MAP_KEY
     if not os.path.exists("checked_key.py"):
-        if test_map_key.MAP_KEY == "<Enter your key here>":
+        if MAP_KEY == "<Enter your key here>":
             print("The program don't check if the key is valide")
             print("If you want to enter a new key, remove checked_key.py")
-            tmp = str(input())
+            MAP_KEY = str(input())
             with open("checked_key.py", "w", encoding="utf8") as f:
-                f.write(tmp)
+                f.write(MAP_KEY)
             f.close()
         else:
             print("You already have a key. You changed source code :) !")
     else:
         f = open("checked_key.py", "r", encoding="utf8")
-        test_map_key.MAP_KEY = f.readline()[:-1]
+        MAP_KEY = f.readline()[:]
         f.close()
         if os.path.exists(".git/"):
             with open(".gitignore", "a+", encoding="utf8") as f:
@@ -43,6 +46,8 @@ def check_key():
 def main() -> None:
 
     check_key()
+    test_map_key.generate_map(MAP_KEY)
+
     pygame.init()
     files = []
     base_file_name = "frames/file"
@@ -110,7 +115,10 @@ def main() -> None:
         clock.tick(60)
 
     print("Hello and goodbye from nasa-space-app-jukebok!")
+
+    for i in os.listdir("frames"):
+        os.remove("frames/" + i)
+    os.rmdir("frames")
     pygame.quit()
 
 main()
-print(np.__version__)
