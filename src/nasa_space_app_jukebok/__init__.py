@@ -25,6 +25,7 @@ def check_key():
         if MAP_KEY == "<Enter your key here>":
             print("The program don't check if the key is valide")
             print("If you want to enter a new key, remove checked_key.py")
+            print("Please enter your API key: ")
             MAP_KEY = str(input())
             with open("checked_key.py", "w", encoding="utf8") as f:
                 f.write(MAP_KEY)
@@ -115,7 +116,6 @@ def main() -> None:
         pygame.draw.rect(screen, (150, 143, 190), rec_timestamp_active, width=0)
 
         pygame.display.flip() # is .update() an equivalent?
-        print(files)
         clock.tick(60)
 
     print("Hello and goodbye from nasa-space-app-jukebok!")
