@@ -1,5 +1,7 @@
 import numpy as np
 import pygame
+import test_map_key 
+import os 
 
 WIDTH_WINDOW = 1282
 HEIGHT_WINDOW  = 922
@@ -14,9 +16,33 @@ def index_files(base_name:str, tab:[str], n_files:int):
         tmp = base_name + "_%03d.png" % i
         tab.append(tmp)
 
+def check_key():
+
+    if not os.path.exists("checked_key.py"):
+        if test_map_key.MAP_KEY == "<Enter your key here>":
+            print("The program don't check if the key is valide")
+            print("If you want to enter a new key, remove checked_key.py")
+            tmp = str(input())
+            with open("checked_key.py", "w", encoding="utf8") as f:
+                f.write(tmp)
+            f.close()
+        else:
+            print("You already have a key. You changed source code :) !")
+    else:
+        f = open("checked_key.py", "r", encoding="utf8")
+        test_map_key.MAP_KEY = f.readline()[:-1]
+        f.close()
+        if os.path.exists(".git/"):
+            with open(".gitignore", "a+", encoding="utf8") as f:
+                f.seek(0)
+                file = f.readlines()
+                if not "checked_key.py" in file:
+                    f.write("checked_key.py")
+            f.close()
 
 def main() -> None:
 
+    check_key()
     pygame.init()
     files = []
     base_file_name = "frames/file"
