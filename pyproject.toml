@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "Lucas", email = "lucas.danna@pm.me" }
+    { name = "Lucas", email = "lucas.danna@pm.me" },
+    { name = "Léo", email = "leo.azais@laposte.net" }
 ]
 requires-python = ">=3.13"
 dependencies = [
@@ -13,6 +14,7 @@ dependencies = [
     "owslib>=0.36.0",
     "pandas>=3.1.1",
     "requests>=2.34.2",
+    "pygame>=2.6.1",
 ]
 
 [project.scripts]
